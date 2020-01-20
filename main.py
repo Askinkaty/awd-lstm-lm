@@ -238,6 +238,8 @@ try:
         optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    print('Optimizer: ', optimizer)
+    print('Scheduler: ', scheduler)
 
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
