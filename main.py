@@ -148,7 +148,7 @@ params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
-
+print('Criterion: ', criterion)
 ###############################################################################
 # Training code
 ###############################################################################
@@ -206,6 +206,7 @@ def train():
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         if args.clip: torch.nn.utils.clip_grad_norm_(params, args.clip)
         optimizer.step()
+        scheduler.step()
 
         total_loss += raw_loss.data
         optimizer.param_groups[0]['lr'] = lr2
@@ -235,6 +236,9 @@ try:
         optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
+
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
         train()
