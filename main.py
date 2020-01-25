@@ -142,9 +142,9 @@ if not criterion:
     print('Using', splits)
     criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
 ###
-# if args.cuda:
-    # model = model.cuda()
-    # criterion = criterion.cuda()
+if args.cuda:
+    model = model.cuda()
+    criterion = criterion.cuda()
 ###
 params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
