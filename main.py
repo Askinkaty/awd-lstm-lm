@@ -115,7 +115,6 @@ criterion = None
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
-model = torch.nn.DataParallel(model, device_ids=[0, 1])
 ###
 
 
@@ -143,9 +142,9 @@ if not criterion:
     print('Using', splits)
     criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
 ###
-if args.cuda:
-    model = model.cuda()
-    criterion = criterion.cuda()
+# if args.cuda:
+    # model = model.cuda()
+    # criterion = criterion.cuda()
 ###
 params = list(model.parameters()) + list(criterion.parameters())
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
@@ -172,6 +171,7 @@ def evaluate(data_source, batch_size=10):
 
 
 def train():
+    global model
     # Turn on training mode which enables dropout.
     if args.model == 'QRNN': model.reset()
     total_loss = 0
@@ -179,6 +179,7 @@ def train():
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(args.batch_size)
     batch, i = 0, 0
+    model = torch.nn.DataParallel(model)
     while i < train_data.size(0) - 1 - 1:
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
