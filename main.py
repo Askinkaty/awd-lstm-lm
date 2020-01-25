@@ -115,7 +115,10 @@ criterion = None
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
+model = torch.nn.DataParallel(model, device_ids=[0, 1])
 ###
+
+
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
