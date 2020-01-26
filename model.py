@@ -4,7 +4,6 @@ import torch.nn as nn
 from embed_regularize import embedded_dropout
 from locked_dropout import LockedDropout
 from weight_drop import WeightDrop
-from utils import print_hidden
 
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
@@ -67,7 +66,6 @@ class RNNModel(nn.Module):
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, input, hidden, return_h=False):
-        print_hidden(hidden)
         emb = embedded_dropout(self.encoder, input, dropout=self.dropoute if self.training else 0)
         #emb = self.idrop(emb)
 
