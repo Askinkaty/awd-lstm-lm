@@ -27,3 +27,13 @@ def get_batch(source, i, args, seq_len=None, evaluation=False):
     data = source[i:i+seq_len]
     target = source[i+1:i+1+seq_len].view(-1)
     return data, target
+
+def print_hidden(hidden):
+    assert isinstance(hidden, (list, tuple))
+    result = []
+    for layer_hidden in hidden:
+        assert isinstance(layer_hidden, tuple)
+        for h in layer_hidden:
+            assert isinstance(h, torch.Tensor)
+        result.append(tuple([h.shape for h in layer_hidden]))
+    print(str(result))
