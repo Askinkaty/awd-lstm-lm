@@ -20,12 +20,18 @@ class Dictionary(object):
         self.total += 1
         return self.word2idx[word]
 
+    def get_index(self, word):
+        if word in self.word2idx:
+            return self.word2idx[word]
+        else:
+            return self.word2idx['<unk>']
+
     def __len__(self):
         return len(self.idx2word)
 
 
 class Corpus(object):
-    def __init__(self, path):
+    def __init__(self, path, preproc=False):
         self.dictionary = Dictionary()
         self.train = self.tokenize(os.path.join(path, 'train.txt'))
         self.valid = self.tokenize(os.path.join(path, 'valid.txt'))

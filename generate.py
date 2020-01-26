@@ -9,8 +9,11 @@ import argparse
 
 import torch
 from torch.autograd import Variable
-
 import data
+from utils import batchify
+import torch.nn.functional as F
+import os
+import hashlib
 
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
@@ -57,22 +60,50 @@ if args.cuda:
 else:
     model.cpu()
 
-corpus = data.Corpus(args.data)
+fn = 'corpus.{}.data'.format(hashlib.md5(args.data.encode()).hexdigest())
+if os.path.exists(fn):
+    print('Loading cached dataset...')
+    corpus = torch.load(fn)
+
+# corpus = data.Corpus(args.data)
 ntokens = len(corpus.dictionary)
-hidden = model.init_hidden(1)
-input = Variable(torch.rand(1, 1).mul(ntokens).long(), volatile=True)
-if args.cuda:
-    input.data = input.data.cuda()
+# hidden = model.init_hidden(1)
+# input = Variable(torch.rand(1, 1).mul(ntokens).long(), volatile=True)
+# if args.cuda:
+#     input.data = input.data.cuda()
 
-with open(args.outf, 'w') as outf:
-    for i in range(args.words):
-        output, hidden = model(input, hidden)
-        word_weights = output.squeeze().data.div(args.temperature).exp().cpu()
-        word_idx = torch.multinomial(word_weights, 1)[0]
-        input.data.fill_(word_idx)
-        word = corpus.dictionary.idx2word[word_idx]
 
-        outf.write(word + ('\n' if i % 20 == 19 else ' '))
+def score(self, sentence):
+    batch_size = 1
+    tokens = sentence.split() + ['<eos>']
+    idxs = [self.dictionary.get_index(x) for x in tokens]
+    idxs = torch.LongTensor(idxs)
+    # make it look as a batch of one element
+    input = batchify(idxs, batch_size, args)
+    # instantiate hidden states
+    hidden = self.model.initHidden(batchSize=1)
+    output, hidden = self.model(input, hidden)
+    logits = self.model.decoder(output)
+    logProba = F.log_softmax(logits, dim=1)
+    return sum([logProba[i][idxs[i+1]] for i in range(len((idxs))-1)])
 
-        if i % args.log_interval == 0:
-            print('| Generated {}/{} words'.format(i, args.words))
+
+with __name__ == '__main__':
+    sentence = 'Мама мыла раму'
+    print('Score: ', score(sentence))
+
+
+
+# with open(args.outf, 'w') as outf:
+#     for i in range(args.words):
+#         output, hidden = model(input, hidden)
+#         word_weights = output.squeeze().data.div(args.temperature).exp().cpu()
+#         word_idx = torch.multinomial(word_weights, 1)[0]
+#         input.data.fill_(word_idx)
+#         word = corpus.dictionary.idx2word[word_idx]
+#
+#         outf.write(word + ('\n' if i % 20 == 19 else ' '))
+#
+#         if i % args.log_interval == 0:
+#             print('| Generated {}/{} words'.format(i, args.words))
+
