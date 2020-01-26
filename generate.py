@@ -18,8 +18,8 @@ import hashlib
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
 # Model parameters.
-# parser.add_argument('--data', type=str, default='./data/penn',
-#                     help='location of the data corpus')
+parser.add_argument('--data', type=str, default='/proj/katinska/new_data',
+                    help='location of the data corpus')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN)')
 parser.add_argument('--checkpoint', type=str, default='./RU10.pt',
