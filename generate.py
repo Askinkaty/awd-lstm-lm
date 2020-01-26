@@ -90,9 +90,8 @@ def score(self, sentence):
     return sum([logProba[i][idxs[i+1]] for i in range(len((idxs))-1)])
 
 
-with __name__ == '__main__':
-    sentence = 'Мама мыла раму'
-    print('Score: ', score(sentence))
+sentence = 'Мама мыла раму'
+print('Score: ', score(sentence))
 
 
 
