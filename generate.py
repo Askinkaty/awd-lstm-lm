@@ -75,17 +75,17 @@ ntokens = len(corpus.dictionary)
 #     input.data = input.data.cuda()
 
 
-def score(self, sentence):
+def score(sentence):
     batch_size = 1
     tokens = sentence.split() + ['<eos>']
-    idxs = [self.dictionary.get_index(x) for x in tokens]
+    idxs = [corpus.dictionary.get_index(x) for x in tokens]
     idxs = torch.LongTensor(idxs)
     # make it look as a batch of one element
     input = batchify(idxs, batch_size, args)
     # instantiate hidden states
-    hidden = self.model.initHidden(batchSize=1)
-    output, hidden = self.model(input, hidden)
-    logits = self.model.decoder(output)
+    hidden = model.initHidden(batchSize=1)
+    output, hidden = model(input, hidden)
+    logits = model.decoder(output)
     logProba = F.log_softmax(logits, dim=1)
     return sum([logProba[i][idxs[i+1]] for i in range(len((idxs))-1)])
 
