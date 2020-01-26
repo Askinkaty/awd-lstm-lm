@@ -18,16 +18,16 @@ import hashlib
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
 # Model parameters.
-parser.add_argument('--data', type=str, default='./data/penn',
-                    help='location of the data corpus')
+# parser.add_argument('--data', type=str, default='./data/penn',
+#                     help='location of the data corpus')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN)')
-parser.add_argument('--checkpoint', type=str, default='./model.pt',
+parser.add_argument('--checkpoint', type=str, default='./RU10.pt',
                     help='model checkpoint to use')
-parser.add_argument('--outf', type=str, default='generated.txt',
-                    help='output file for generated text')
-parser.add_argument('--words', type=int, default='1000',
-                    help='number of words to generate')
+# parser.add_argument('--outf', type=str, default='generated.txt',
+#                     help='output file for generated text')
+# parser.add_argument('--words', type=int, default='1000',
+#                     help='number of words to generate')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
 parser.add_argument('--cuda', action='store_true',
