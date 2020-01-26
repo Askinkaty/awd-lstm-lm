@@ -83,7 +83,7 @@ def score(sentence):
     # make it look as a batch of one element
     input = batchify(idxs, batch_size, args)
     # instantiate hidden states
-    hidden = model.initHidden(batchSize=1)
+    hidden = model.init_hidden(batchSize=1)
     output, hidden = model(input, hidden)
     logits = model.decoder(output)
     logProba = F.log_softmax(logits, dim=1)
