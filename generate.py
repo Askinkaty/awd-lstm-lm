@@ -90,8 +90,12 @@ def score(sentence):
     return [logProba[i][idxs[i+1]] for i in range(len((idxs))-1)]
 
 
-sentence = 'Мама мыла раму'
-print('Score: ', score(sentence))
+sentences = ['Мама мыла раму.',
+             'Мама мыть раму.',
+             'Маму мыла раму.',
+             'Мама помыла раму.']
+for sentence in sentences:
+    print('Score: ', score(sentence))
 
 
 
