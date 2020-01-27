@@ -87,7 +87,7 @@ def score(sentence):
     output, hidden = model(input, hidden)
     logits = model.decoder(output)
     logProba = F.log_softmax(logits, dim=1)
-    return sum([logProba[i][idxs[i+1]] for i in range(len((idxs))-1)])
+    return [logProba[i][idxs[i+1]] for i in range(len((idxs))-1)]
 
 
 sentence = 'Мама мыла раму'
