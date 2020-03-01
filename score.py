@@ -18,7 +18,7 @@ import codecs
 import csv
 from nltk import word_tokenize
 import nltk
-nltk.download('punkt', download_dir='/proj/katinska/')
+nltk.data.path.append('/proj/katinska/')
 
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
