@@ -111,4 +111,4 @@ if __name__ == '__main__':
             res_scores = [s.item() for s in scores]
             for pair in pairs:
                 writer.writerow([pair[0], pair[1].item()])
-            result_writer.write(res_scores)
+            result_writer.writerow(res_scores)
