@@ -84,7 +84,7 @@ def score(sentence):
     return [logProb[i][idxs[i+1]] for i in range(len((idxs))-1)]
 
 
-with __name__ == '__main__':
+if __name__ == '__main__':
     input_dir = './random_pos_sentences_02_2020'
     input_files = ['ma_clean_all.txt', 'annotated_er_all.txt', 'annotated_er_all_pos.txt']
     out_dir = './awd_results'
@@ -102,4 +102,4 @@ with __name__ == '__main__':
                 assert len(tokens) == len(scores)
                 pairs = zip(tokens, scores)
                 for pair in pairs:
-                    writer.writerow([pair[0], pair[1]])
+                    writer.writerow([pair[0], pair[1].item()])
