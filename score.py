@@ -16,6 +16,7 @@ import os
 import hashlib
 import codecs
 import csv
+from nltk import word_tokenize
 
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
@@ -71,7 +72,7 @@ print('Dict length: ', ntokens)
 
 def score(sentence):
     batch_size = 1
-    tokens = sentence.split() + ['<eos>']
+    tokens = word_tokenize(sentence) + ['<eos>']
     idxs = [corpus.dictionary.get_index(x) for x in tokens]
     idxs = torch.LongTensor(idxs)
     # make it look as a batch of one element
@@ -100,7 +101,7 @@ if __name__ == '__main__':
                 print('Sentence length: ', len(sent))
                 scores = score(sent)
                 print('Score length: ', len(scores))
-                tokens = sent.split()
+                tokens = word_tokenize(sent)
                 assert len(tokens) == len(scores)
                 pairs = zip(tokens, scores)
                 for pair in pairs:
