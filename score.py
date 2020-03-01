@@ -98,7 +98,7 @@ if __name__ == '__main__':
         csv_file = codecs.open(out_scores_file, mode='w')
         res_csv_file = codecs.open(out_result_file, mode='w')
         result_writer = csv.writer(res_csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        result_writer.write(['score'])
+        result_writer.writerow(['score'])
         writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         writer.writerow(['word', 'score'])
         for sent in input.readlines():
