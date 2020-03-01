@@ -94,15 +94,21 @@ if __name__ == '__main__':
     for input_file in input_files:
         input = codecs.open(os.path.join(input_dir, input_file), 'r', encoding='utf-8')
         out_scores_file = os.path.join(out_dir, input_file.replace('.txt', '_scores.csv'))
-        with codecs.open(out_scores_file, mode='w') as csv_file:
-            writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(['word', 'score'])
-            for sent in input.readlines():
-                print('Sentence length: ', len(sent))
-                scores = score(sent)
-                print('Score length: ', len(scores))
-                tokens = word_tokenize(sent)
-                assert len(tokens) == len(scores)
-                pairs = zip(tokens, scores)
-                for pair in pairs:
-                    writer.writerow([pair[0], pair[1].item()])
+        out_result_file = os.path.join(out_dir, input_file.replace('.txt', '_results.csv'))
+        csv_file = codecs.open(out_scores_file, mode='w')
+        res_csv_file = codecs.open(out_result_file, mode='w')
+        result_writer = csv.writer(res_csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        result_writer.write(['score'])
+        writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(['word', 'score'])
+        for sent in input.readlines():
+            print('Sentence length: ', len(sent))
+            scores = score(sent)
+            print('Score length: ', len(scores))
+            tokens = word_tokenize(sent)
+            assert len(tokens) == len(scores)
+            pairs = zip(tokens, scores)
+            res_scores = [s.item() for s in scores]
+            for pair in pairs:
+                writer.writerow([pair[0], pair[1].item()])
+            result_writer.write(res_scores)
