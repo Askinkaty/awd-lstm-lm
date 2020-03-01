@@ -15,6 +15,7 @@ import torch.nn.functional as F
 import os
 import hashlib
 import codecs
+import csv
 
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
@@ -27,7 +28,7 @@ parser.add_argument('--checkpoint', type=str, default='./RU12_best.pt',
                     help='model checkpoint to use')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
-parser.add_argument('--cuda', action='store_true',
+parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--temperature', type=float, default=1.0,
                     help='temperature - higher will increase diversity')
@@ -65,7 +66,7 @@ if os.path.exists(fn):
     corpus = torch.load(fn)
 
 ntokens = len(corpus.dictionary)
-print('Dict length: ', len(ntokens))
+print('Dict length: ', ntokens)
 
 
 def score(sentence):
@@ -85,9 +86,20 @@ def score(sentence):
 
 with __name__ == '__main__':
     input_dir = './random_pos_sentences_02_2020'
-    input_file = 'ma_clean_all.txt'
-    input = codecs.open(os.join(input_dir, input_file), 'r', encoding='utf-8')
-    for sent in input.readlines():
-        print('Sentence length: ', len(sent))
-        score = score(sent)
-        print('Score length: ', len(score))
+    input_files = ['ma_clean_all.txt', 'annotated_er_all.txt', 'annotated_er_all_pos.txt']
+    out_dir = './awd_results'
+    for input_file in input_files:
+        input = codecs.open(os.join(input_dir, input_file), 'r', encoding='utf-8')
+        out_scores_file = input_file.replace('.txt', '_scores.csv')
+        with codecs.open(out_scores_file, mode='w') as csv_file:
+            writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(['word', 'score'])
+            for sent in input.readlines():
+                print('Sentence length: ', len(sent))
+                scores = score(sent)
+                print('Score length: ', len(scores))
+                tokens = sent.split()
+                assert len(tokens) == len(scores)
+                pairs = zip(tokens, scores)
+                for pair in pairs:
+                    writer.writerow([pair[0], pair[1]])
