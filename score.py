@@ -88,9 +88,11 @@ if __name__ == '__main__':
     input_dir = './random_pos_sentences_02_2020'
     input_files = ['ma_clean_all.txt', 'annotated_er_all.txt', 'annotated_er_all_pos.txt']
     out_dir = './awd_results'
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     for input_file in input_files:
         input = codecs.open(os.path.join(input_dir, input_file), 'r', encoding='utf-8')
-        out_scores_file = input_file.replace('.txt', '_scores.csv')
+        out_scores_file = os.path.join(out_dir, input_file.replace('.txt', '_scores.csv'))
         with codecs.open(out_scores_file, mode='w') as csv_file:
             writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(['word', 'score'])
