@@ -84,7 +84,8 @@ def score(sentence):
     output, hidden = model(input, hidden)
     logits = model.decoder(output)
     logProb = F.log_softmax(logits, dim=1)
-    return [logProb[i][idxs[i+1]] for i in range(len((idxs))-1)]
+    return [logProb[i][idxs[i]] for i in range(len((idxs)) - 1)]
+    # return [logProb[i][idxs[i+1]] for i in range(len((idxs))-1)]
 
 
 if __name__ == '__main__':
