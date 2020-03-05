@@ -89,38 +89,38 @@ def score(sentence):
 
 
 
-if __name__ == '__main__':
-    sentences = ['Мама мыла раму.', 'Мама помыть раму.']
-    for sent in sentences:
-        print(sent)
-        print(word_tokenize(sent))
-        print(score(sent))
-
-
 # if __name__ == '__main__':
-#     input_dir = './random_pos_sentences_02_2020'
-#     input_files = ['ma_clean_all.txt', 'annotated_er_all.txt', 'annotated_er_all_pos.txt']
-#     out_dir = './awd_results'
-#     if not os.path.exists(out_dir):
-#         os.makedirs(out_dir)
-#     for input_file in input_files:
-#         input = codecs.open(os.path.join(input_dir, input_file), 'r', encoding='utf-8')
-#         out_scores_file = os.path.join(out_dir, input_file.replace('.txt', '_scores.csv'))
-#         out_result_file = os.path.join(out_dir, input_file.replace('.txt', '_results.csv'))
-#         csv_file = codecs.open(out_scores_file, mode='w')
-#         res_csv_file = codecs.open(out_result_file, mode='w')
-#         result_writer = csv.writer(res_csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-#         result_writer.writerow(['score'])
-#         writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-#         writer.writerow(['word', 'score'])
-#         for sent in input.readlines():
-#             print('Sentence length: ', len(sent))
-#             scores = score(sent)
-#             print('Score length: ', len(scores))
-#             tokens = word_tokenize(sent)
-#             assert len(tokens) == len(scores)
-#             pairs = zip(tokens, scores)
-#             res_scores = [s.item() for s in scores]
-#             for pair in pairs:
-#                 writer.writerow([pair[0], pair[1].item()])
-#             result_writer.writerow(res_scores)
+#     sentences = ['Мама мыла раму.', 'Мама помыть раму.']
+#     for sent in sentences:
+#         print(sent)
+#         print(word_tokenize(sent))
+#         print(score(sent))
+
+
+if __name__ == '__main__':
+    input_dir = './random_pos_sentences_02_2020'
+    input_files = ['ma_clean_all.txt', 'annotated_er_all.txt', 'annotated_er_all_pos.txt']
+    out_dir = './awd_results'
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    for input_file in input_files:
+        input = codecs.open(os.path.join(input_dir, input_file), 'r', encoding='utf-8')
+        out_scores_file = os.path.join(out_dir, input_file.replace('.txt', '_scores.csv'))
+        out_result_file = os.path.join(out_dir, input_file.replace('.txt', '_results.csv'))
+        csv_file = codecs.open(out_scores_file, mode='w')
+        res_csv_file = codecs.open(out_result_file, mode='w')
+        result_writer = csv.writer(res_csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        result_writer.writerow(['score'])
+        writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(['word', 'score'])
+        for sent in input.readlines():
+            print('Sentence length: ', len(sent))
+            scores = score(sent)
+            print('Score length: ', len(scores))
+            tokens = word_tokenize(sent)
+            assert len(tokens) == len(scores)
+            pairs = zip(tokens, scores)
+            res_scores = [s.item() for s in scores]
+            for pair in pairs:
+                writer.writerow([pair[0], pair[1].item()])
+            result_writer.writerow(res_scores)
