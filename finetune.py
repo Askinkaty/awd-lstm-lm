@@ -179,6 +179,7 @@ def train():
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
+    print('Loading the model...')
     model = torch.load(f)
 
 
