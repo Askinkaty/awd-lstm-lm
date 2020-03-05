@@ -136,6 +136,10 @@ if not criterion:
 #         hidden = repackage_hidden(hidden)
 #     return total_loss[0] / len(data_source)
 
+if args.cuda:
+    model = model.cuda()
+    criterion = criterion.cuda()
+
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
     model.eval()
