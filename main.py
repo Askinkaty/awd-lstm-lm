@@ -8,7 +8,11 @@ import torch.nn as nn
 import data
 import model
 
+from torch.autograd import Variable
+from torch.optim.lr_scheduler import ExponentialLR
+
 from utils import batchify, get_batch, repackage_hidden
+import candle
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -49,6 +53,9 @@ parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
+parser.add_argument('--no_md', action='store_true')
+
+
 randomhash = ''.join(str(time.time()).split('.'))
 parser.add_argument('--save', type=str,  default=randomhash+'.pt',
                     help='path to save the final model')
@@ -64,6 +71,17 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
+#
+parser.add_argument('--binarized', default=False, action='store_true')
+parser.add_argument('--test', default=False, action='store_true')
+parser.add_argument('--keep_pct_test', default=1, type=float)
+parser.add_argument('--collect_stats', default=False, action='store_true')
+parser.add_argument('--refresh_opt', default=False, action='store_true')
+parser.add_argument('--split_cross', default=False, action='store_true')
+parser.add_argument('--scale_alpha', default=1E-5, type=float)
+parser.add_argument('--keep_pct', default=1, type=float)
+parser.add_argument('--log_out', default="out", type=str)
+
 args = parser.parse_args()
 args.tied = True
 
@@ -87,7 +105,9 @@ def model_save(fn):
 def model_load(fn):
     global model, criterion, optimizer
     with open(fn, 'rb') as f:
-        model, criterion, optimizer = torch.load(f)
+        model_dict, criterion, optimizer = torch.load(f)
+    model.load_state_dict(model_dict, strict=False)
+
 
 import os
 import hashlib
@@ -114,8 +134,23 @@ from splitcross import SplitCrossEntropyLoss
 criterion = None
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
+model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth,
+                       args.dropouti, args.dropoute, args.wdrop, args.tied)
+
+model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout,
+    args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied,
+    binarized=args.binarized, collect_stats=args.collect_stats, no_md=args.no_md, split_cross=args.split_cross)
+
 ###
+
+# if args.resume:
+#     print('Resuming model ...')
+#     model_load(args.resume)
+#     if args.keep_pct != 1:
+#         model.linear_prune(args.keep_pct)
+#     optimizer.param_groups[0]['lr'] = args.lr
+#     model.dropouti, model.dropouth, model.dropout, args.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
+
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
@@ -138,20 +173,42 @@ if not criterion:
         # WikiText-103
         splits = [2800, 20000, 76000]
     print('Using', splits)
-    criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
+    if args.split_cross:
+        criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
+    else:
+        criterion = nn.CrossEntropyLoss()
 ###
 if args.cuda:
     model = model.cuda()
     criterion = criterion.cuda()
 ###
-params = list(model.parameters()) + list(criterion.parameters())
+# params = list(model.parameters()) + list(criterion.parameters())
+# total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
+# print('Args:', args)
+# print('Model total parameters:', total_params)
+# print('Criterion: ', criterion)
+
+
+params = list(filter(lambda p: not p is model.scale, model.parameters()))
+params = list(params)
+if args.split_cross:
+    params = params + list(criterion.parameters())
+print(args.split_cross)
+if args.cuda:
+    model = model.cuda()
+    if args.split_cross:
+        criterion = criterion.cuda()
+    params = list(params)
+
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
 print('Criterion: ', criterion)
+
 ###############################################################################
 # Training code
 ###############################################################################
+
 
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
@@ -163,9 +220,14 @@ def evaluate(data_source, batch_size=10):
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data, targets = get_batch(data_source, i, args, evaluation=True)
         output, hidden = model(data, hidden)
-        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+        output_flat = output.view(-1, ntokens)
+        if args.split_cross:
+            # total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+            total_loss += len(data) * criterion(model.decoder, output, targets).data
+        else:
+            total_loss += len(data) * criterion(output_flat, targets).data
         hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
+    return total_loss[0] / len(data_source)
 
 
 def train():
@@ -194,7 +256,12 @@ def train():
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
-        raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets)
+
+        if args.split_cross:
+            raw_loss = criterion(model.decoder, output, targets)
+            # raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets)
+        else:
+            raw_loss = criterion(output, targets)
 
         loss = raw_loss
         # Activiation Regularization
@@ -206,17 +273,24 @@ def train():
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         if args.clip: torch.nn.utils.clip_grad_norm_(params, args.clip)
         optimizer.step()
-        scheduler.step()
+        # scheduler.step()
 
         total_loss += raw_loss.data
+        if model.scale.data.item() < 1:
+            model.scale.data.add_(args.scale_alpha)
         optimizer.param_groups[0]['lr'] = lr2
+
         if batch % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss.item() / args.log_interval
             elapsed = time.time() - start_time
-            print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
+            out = ('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
+                    'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f} | scale {:.3} '.format(
                 epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
+                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2),
+                model.scale.data.item()))
+            print(out)
+            with open(args.log_out, "a") as f:
+                f.write(out + "\n")
             total_loss = 0
             start_time = time.time()
         ###
@@ -230,16 +304,21 @@ stored_loss = 100000000
 
 # At any point you can hit Ctrl + C to break out of training early.
 try:
-    optimizer = None
-    # Ensure the optimizer is optimizing params, which includes both the model's weights as well as the criterion's weight (i.e. Adaptive Softmax)
-    if args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
-    if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
+    if not args.resume or args.refresh_opt:
+        optimizer = None
+        if args.optimizer == 'sgd':
+            optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
+        elif args.optimizer == 'adam':
+            optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
+        elif args.optimizer == 'signsgd':
+            optimizer = candle.SGD(params, lr=args.lr, sign=True, weight_decay=args.wdecay)
+        elif args.optimizer == 'asgd':
+            optimizer = torch.optim.ASGD(params, lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
 
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-    print('Optimizer: ', optimizer)
-    print('Scheduler: ', scheduler)
+
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    # print('Optimizer: ', optimizer)
+    # print('Scheduler: ', scheduler)
 
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
@@ -252,10 +331,18 @@ try:
 
             val_loss2 = evaluate(val_data)
             print('-' * 89)
-            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-                    epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
+            out = ('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | ' + \
+                   'valid ppl {:8.2f} | valid bpc {:8.3f}').format(
+                epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2))
+            print(out)
             print('-' * 89)
+            with open(args.log_out, "a") as f:
+                f.write("-" * 89)
+                f.write("\n")
+                f.write(out)
+                f.write("\n")
+                f.write("-" * 89)
+                f.write("\n")
 
             if val_loss2 < stored_loss:
                 model_save(args.save)
@@ -268,10 +355,18 @@ try:
         else:
             val_loss = evaluate(val_data, eval_batch_size)
             print('-' * 89)
-            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-              epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
+            out = '| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
+                epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2))
             print('-' * 89)
+            print(out)
+            print('-' * 89)
+            with open(args.log_out, "a") as f:
+                f.write("-" * 89)
+                f.write("\n")
+                f.write(out)
+                f.write("\n")
+                f.write("-" * 89)
+                f.write("\n")
 
             if val_loss < stored_loss:
                 model_save(args.save)
@@ -296,6 +391,9 @@ except KeyboardInterrupt:
 
 # Load the best saved model.
 model_load(args.save)
+
+# keep_pct = args.keep_pct_test
+# model.linear_prune(keep_pct)
 
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
