@@ -178,7 +178,7 @@ def train():
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
         # raw_loss = criterion(output.view(-1, ntokens), targets)
         raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets)
-        
+
 
         loss = raw_loss
         # Activiation Regularization
@@ -210,8 +210,9 @@ def train():
 # Load the best saved model.
 with open(args.save, 'rb') as f:
     print('Loading the model...')
-    model = torch.load(f)
+    model, _, _ = torch.load(f)
 
+print('Criterion:', criterion)
 
 # Loop over epochs.
 lr = args.lr
@@ -260,7 +261,7 @@ except KeyboardInterrupt:
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    model = torch.load(f)
+    model, criterion, optimizer = torch.load(f)
     
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
