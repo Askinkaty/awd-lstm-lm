@@ -29,7 +29,7 @@ parser.add_argument('--epochs', type=int, default=8000,
                     help='upper epoch limit')
 parser.add_argument('--batch_size', type=int, default=40, metavar='N',
                     help='batch size')
-parser.add_argument('--bptt', type=int, default=70,
+parser.add_argument('--bptt', type=int, default=35,
                     help='sequence length')
 parser.add_argument('--dropout', type=float, default=0.4,
                     help='dropout applied to layers (0 = no dropout)')
