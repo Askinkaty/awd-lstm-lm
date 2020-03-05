@@ -100,26 +100,54 @@ total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[
 print('Args:', args)
 print('Model total parameters:', total_params)
 
-criterion = nn.CrossEntropyLoss()
+from splitcross import SplitCrossEntropyLoss
+criterion = None
+
+# criterion = nn.CrossEntropyLoss()
+if not criterion:
+    splits = []
+    if ntokens > 500000:
+        # One Billion
+        # This produces fairly even matrix mults for the buckets:
+        # 0: 11723136, 1: 10854630, 2: 11270961, 3: 11219422
+        splits = [4200, 35000, 180000]
+    elif ntokens > 75000:
+        # WikiText-103
+        splits = [2800, 20000, 76000]
+    print('Using', splits)
+    criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
 
 ###############################################################################
 # Training code
 ###############################################################################
 
+# def evaluate(data_source, batch_size=10):
+#     # Turn on evaluation mode which disables dropout.
+#     if args.model == 'QRNN': model.reset()
+#     model.eval()
+#     total_loss = 0
+#     ntokens = len(corpus.dictionary)
+#     hidden = model.init_hidden(batch_size)
+#     for i in range(0, data_source.size(0) - 1, args.bptt):
+#         data, targets = get_batch(data_source, i, args, evaluation=True)
+#         output, hidden = model(data, hidden)
+#         output_flat = output.view(-1, ntokens)
+#         total_loss += len(data) * criterion(output_flat, targets).data
+#         hidden = repackage_hidden(hidden)
+#     return total_loss[0] / len(data_source)
+
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
-    if args.model == 'QRNN': model.reset()
     model.eval()
+    if args.model == 'QRNN': model.reset()
     total_loss = 0
-    ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data, targets = get_batch(data_source, i, args, evaluation=True)
         output, hidden = model(data, hidden)
-        output_flat = output.view(-1, ntokens)
-        total_loss += len(data) * criterion(output_flat, targets).data
+        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
-    return total_loss[0] / len(data_source)
+    return total_loss.item() / len(data_source)
 
 
 def train():
@@ -148,7 +176,9 @@ def train():
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
-        raw_loss = criterion(output.view(-1, ntokens), targets)
+        # raw_loss = criterion(output.view(-1, ntokens), targets)
+        raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets)
+        
 
         loss = raw_loss
         # Activiation Regularization
