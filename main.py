@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from torch.optim.lr_scheduler import ExponentialLR
 
 from utils import batchify, get_batch, repackage_hidden
-import candle
+# import candle
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn/',
@@ -310,8 +310,8 @@ try:
             optimizer = torch.optim.SGD(params, lr=args.lr, weight_decay=args.wdecay)
         elif args.optimizer == 'adam':
             optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
-        elif args.optimizer == 'signsgd':
-            optimizer = candle.SGD(params, lr=args.lr, sign=True, weight_decay=args.wdecay)
+        # elif args.optimizer == 'signsgd':
+        #     optimizer = candle.SGD(params, lr=args.lr, sign=True, weight_decay=args.wdecay)
         elif args.optimizer == 'asgd':
             optimizer = torch.optim.ASGD(params, lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
 
