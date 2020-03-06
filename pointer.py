@@ -33,8 +33,13 @@ args = parser.parse_args()
 ###############################################################################
 # Load data
 ###############################################################################
+import os
+import hashlib
 
-corpus = data.Corpus(args.data)
+fn = 'corpus.{}.data'.format(hashlib.md5(args.data.encode()).hexdigest())
+if os.path.exists(fn):
+    print('Loading cached dataset...')
+    corpus = torch.load(fn)
 
 eval_batch_size = 1
 test_batch_size = 1
