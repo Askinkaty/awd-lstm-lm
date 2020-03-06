@@ -222,6 +222,14 @@ print('Criterion:', criterion)
 lr = args.lr
 stored_loss = evaluate(val_data)
 best_val_loss = []
+
+test_loss = evaluate(test_data, test_batch_size)
+print('=' * 89)
+print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
+    test_loss, math.exp(test_loss)))
+print('=' * 89)
+
+
 # At any point you can hit Ctrl + C to break out of training early.
 try:
     #optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, weight_decay=args.wdecay)
